@@ -1,117 +1,146 @@
 const Post = require('../models/Post');
+const fs = require('fs').promises;
+const path = require('path');
 
-class PostController {
-  // Listar todos os posts (público)
-  async index(req, res) {
-    try {
-      const posts = await Post.find()
-        .populate('author', 'username')
-        .sort('-createdAt');
+// Mudando para exportação direta dos métodos em vez de classe
+module.exports = {
+    // Lista todos os posts
+    async index(req, res) {
+        try {
+            const posts = await Post.find().sort({ createdAt: -1 });
+            res.json(posts);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao listar posts' });
+        }
+    },
 
-      return res.json(posts);
-    } catch (error) {
-      console.error('Erro ao listar posts:', error);
-      return res.status(500).json({ error: 'Erro ao listar posts' });
+    // Mostra um post específico
+    async show(req, res) {
+        try {
+            const post = await Post.findById(req.params.id);
+            if (!post) {
+                return res.status(404).json({ error: 'Post não encontrado' });
+            }
+            res.json(post);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar post' });
+        }
+    },
+
+    // Cria um novo post
+    async store(req, res) {
+        try {
+            const { title, description, content } = req.body;
+            const coverImage = req.file ? `/uploads/${req.file.filename}` : null;
+
+            const post = await Post.create({
+                title,
+                description,
+                content,
+                coverImage,
+                author: req.userId
+            });
+
+            res.status(201).json(post);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao criar post' });
+        }
+    },
+
+    // Atualiza um post
+    async update(req, res) {
+        try {
+            console.log('Iniciando atualização do post:', req.params.id);
+
+            // Extrair dados do corpo da requisição
+            let { title, description, content } = req.body;
+
+            // Garantir que content seja uma string
+            if (Array.isArray(content)) {
+                content = content.join('');
+            }
+
+            const updateData = {
+                title,
+                description,
+                content
+            };
+
+            if (req.file) {
+                const currentPost = await Post.findById(req.params.id);
+                if (currentPost && currentPost.coverImage) {
+                    try {
+                        const oldImagePath = path.join(__dirname, '../../public', currentPost.coverImage);
+                        await fs.unlink(oldImagePath).catch(err =>
+                            console.warn('Aviso: Imagem antiga não encontrada:', err.message)
+                        );
+                    } catch (error) {
+                        console.warn('Erro ao deletar imagem antiga:', error);
+                    }
+                }
+                updateData.coverImage = `/uploads/${req.file.filename}`;
+            }
+
+            console.log('Dados para atualização:', {
+                ...updateData,
+                content: updateData.content.substring(0, 100) + '...' // Log parcial do conteúdo
+            });
+
+            const post = await Post.findByIdAndUpdate(
+                req.params.id,
+                updateData,
+                { new: true, runValidators: true }
+            );
+
+            if (!post) {
+                return res.status(404).json({ error: 'Post não encontrado' });
+            }
+
+            res.json(post);
+        } catch (error) {
+            console.error('Erro ao atualizar post:', error);
+            res.status(500).json({
+                error: 'Erro ao atualizar post',
+                details: error.message
+            });
+        }
+    },
+
+    // Remove um post
+    async destroy(req, res) {
+        try {
+            const post = await Post.findById(req.params.id);
+            if (!post) {
+                return res.status(404).json({ error: 'Post não encontrado' });
+            }
+
+            if (post.coverImage) {
+                try {
+                    const imagePath = path.join(__dirname, '../../public', post.coverImage);
+                    await fs.unlink(imagePath);
+                } catch (error) {
+                    console.warn('Erro ao deletar imagem:', error);
+                }
+            }
+
+            await post.deleteOne();
+            res.json({ message: 'Post removido com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao remover post' });
+        }
+    },
+
+    // Upload de imagem
+    async uploadImage(req, res) {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: 'Nenhuma imagem enviada' });
+            }
+
+            const imageUrl = `/uploads/${req.file.filename}`;
+            res.json({ url: imageUrl });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro no upload da imagem' });
+        }
     }
-  }
-
-  // Mostrar um post específico
-  async show(req, res) {
-    try {
-      const post = await Post.findByIdAndUpdate(
-        req.params.id,
-        { $inc: { views: 1 } },
-        { new: true }
-      ).populate('author', 'username');
-
-      if (!post) {
-        return res.status(404).json({ error: 'Post não encontrado' });
-      }
-
-      return res.json(post);
-    } catch (error) {
-      console.error('Erro ao buscar post:', error);
-      return res.status(500).json({ error: 'Erro ao buscar post' });
-    }
-  }
-
-  // Listar posts para o admin
-  async adminList(req, res) {
-    try {
-      const posts = await Post.find()
-        .populate('author', 'username')
-        .select('title coverImage createdAt views status')
-        .sort('-createdAt');
-
-      return res.json(posts);
-    } catch (error) {
-      console.error('Erro ao listar posts:', error);
-      return res.status(500).json({ error: 'Erro ao listar posts' });
-    }
-  }
-
-  // Criar novo post
-  async create(req, res) {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'Imagem de capa é obrigatória' });
-      }
-
-      const post = new Post({
-        ...req.body,
-        author: req.userId,
-        coverImage: `/uploads/${req.file.filename}`
-      });
-
-      await post.save();
-      return res.status(201).json(post);
-    } catch (error) {
-      console.error('Erro ao criar post:', error);
-      return res.status(500).json({ error: 'Erro ao criar post' });
-    }
-  }
-
-  // Atualizar post
-  async update(req, res) {
-    try {
-      const updateData = { ...req.body };
-
-      if (req.file) {
-        updateData.coverImage = `/uploads/${req.file.filename}`;
-      }
-
-      const post = await Post.findByIdAndUpdate(
-        req.params.id,
-        updateData,
-        { new: true }
-      );
-
-      if (!post) {
-        return res.status(404).json({ error: 'Post não encontrado' });
-      }
-
-      return res.json(post);
-    } catch (error) {
-      console.error('Erro ao atualizar post:', error);
-      return res.status(500).json({ error: 'Erro ao atualizar post' });
-    }
-  }
-
-  // Deletar post
-  async delete(req, res) {
-    try {
-      const post = await Post.findByIdAndDelete(req.params.id);
-
-      if (!post) {
-        return res.status(404).json({ error: 'Post não encontrado' });
-      }
-
-      return res.json({ message: 'Post deletado com sucesso' });
-    } catch (error) {
-      console.error('Erro ao deletar post:', error);
-      return res.status(500).json({ error: 'Erro ao deletar post' });
-    }
-  }
-}
-
-module.exports = new PostController();
+};

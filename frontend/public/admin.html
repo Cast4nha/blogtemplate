@@ -1,60 +1,119 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo - Blog</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="/css/style.css" rel="stylesheet">
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="/">Blog</a>
-            <div class="ms-auto">
-                <a href="/create-post.html" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-plus"></i> Novo Post
-                </a>
-                <button id="logoutBtn" class="btn btn-outline-danger">
-                    <i class="fas fa-sign-out-alt"></i> Sair
-                </button>
+<body class="flex flex-col min-h-full bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-gray-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="inline-flex items-center text-white hover:text-gray-300 transition">
+                        <i class="fas fa-arrow-left mr-2"></i> Voltar ao site
+                    </a>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-xl font-bold">Painel Administrativo</span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <a href="/create-post.html"
+                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md
+                              text-white bg-green-600 hover:bg-green-700 transition">
+                        <i class="fas fa-plus mr-2"></i> Nova Publicação
+                    </a>
+                    <button id="logoutBtn"
+                            class="inline-flex items-center px-4 py-2 border border-red-500 rounded-md
+                                   text-red-500 bg-transparent hover:bg-red-500 hover:text-white transition">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
-        <div class="admin-header">
-            <h2>Gerenciar Publicações</h2>
-            <p class="text-muted">Gerencie todas as suas publicações aqui</p>
-        </div>
+    <!-- Conteúdo Principal -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Gerenciar Publicações</h2>
 
-        <div class="admin-posts-list mt-4">
-            <!-- Posts serão inseridos aqui -->
-        </div>
-    </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Título
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Data
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Visualizações
+                                </th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Ações
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="postsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Posts serão inseridos aqui via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
 
-    <!-- Modal de Confirmação de Exclusão -->
-    <div class="modal fade" id="deleteModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Exclusão</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden py-12">
+                    <div class="flex justify-center items-center">
+                        <i class="fas fa-circle-notch fa-spin text-4xl text-gray-400"></i>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    Tem certeza que deseja excluir esta publicação?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete">Excluir</button>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden py-12 text-center">
+                    <i class="fas fa-newspaper text-4xl text-gray-400 mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900">Nenhuma publicação encontrada</h3>
+                    <p class="text-gray-500 mt-2">Comece criando sua primeira publicação!</p>
+                    <a href="/create-post.html"
+                       class="inline-flex items-center px-4 py-2 mt-4 border border-transparent rounded-md
+                              text-white bg-gray-900 hover:bg-gray-800 transition">
+                        <i class="fas fa-plus mr-2"></i> Criar Publicação
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col items-center space-y-6">
+                <div class="flex space-x-6">
+                    <a href="https://instagram.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-instagram text-2xl"></i>
+                    </a>
+                    <a href="https://facebook.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-facebook text-2xl"></i>
+                    </a>
+                    <a href="https://twitter.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-twitter text-2xl"></i>
+                    </a>
+                </div>
+                <div class="text-gray-500 text-sm">
+                    Desenvolvido por Felipe Castanheira
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <script src="js/admin.js"></script>
     <script src="js/auth.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html> 

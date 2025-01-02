@@ -1,21 +1,13 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Verifica se já está logado
-    const token = localStorage.getItem('token');
-    if (token) {
-        window.location.href = '/admin.html';
-        return;
-    }
-
     const loginForm = document.getElementById('loginForm');
     const errorMessage = document.getElementById('errorMessage');
 
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
 
-        // Desabilita o botão durante o login
         const submitButton = loginForm.querySelector('button[type="submit"]');
         submitButton.disabled = true;
         submitButton.innerHTML = `
@@ -24,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         try {
+            console.log('Tentando login com:', { username });
+
             const response = await fetch('http://localhost:3000/api/auth/login', {
                 method: 'POST',
                 headers: {
@@ -33,16 +27,19 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             const data = await response.json();
+            console.log('Resposta do servidor:', data);
 
             if (!response.ok) {
-                throw new Error(data.error || 'Usuário ou senha inválidos');
+                throw new Error(data.error || 'Erro ao fazer login');
             }
 
-            // Salva os dados do usuário
+            // Salva o token e dados do usuário
             localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
+            if (data.user) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+            }
 
-            // Feedback visual de sucesso
+            // Feedback de sucesso
             errorMessage.classList.remove('hidden', 'text-red-600');
             errorMessage.classList.add('text-green-600');
             errorMessage.innerHTML = `
@@ -52,22 +49,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Redireciona após um breve delay
+            // Redireciona
             setTimeout(() => {
-                window.location.replace('/admin.html');
+                window.location.href = '/admin.html';
             }, 1000);
 
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro detalhado:', error);
 
-            // Reativa o botão
             submitButton.disabled = false;
             submitButton.innerHTML = `
                 <i class="fas fa-sign-in-alt mr-2"></i>
                 Entrar
             `;
 
-            // Mostra mensagem de erro
             errorMessage.classList.remove('hidden');
             errorMessage.classList.add('text-red-600');
             errorMessage.innerHTML = `
@@ -76,12 +71,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${error.message}
                 </div>
             `;
-
-            // Animação de shake no formulário
-            loginForm.classList.add('animate-shake');
-            setTimeout(() => {
-                loginForm.classList.remove('animate-shake');
-            }, 500);
         }
     });
 }); 

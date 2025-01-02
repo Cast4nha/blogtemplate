@@ -1,69 +1,77 @@
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sua_chave_secreta';
 
 class AuthController {
-  // Registro de usuário
-  async register(req, res) {
-    try {
-      const { email, username, password } = req.body;
+    static async login(req, res) {
+        try {
+            console.log('Requisição de login recebida:', req.body);
 
-      if (await User.findOne({ email })) {
-        return res.status(400).json({ error: 'Email já cadastrado' });
-      }
+            const { username, password } = req.body;
 
-      if (await User.findOne({ username })) {
-        return res.status(400).json({ error: 'Username já existe' });
-      }
+            if (!username || !password) {
+                console.log('Dados inválidos:', { username, password });
+                return res.status(400).json({ error: 'Usuário e senha são obrigatórios' });
+            }
 
-      // Hash da senha
-      const hashedPassword = await bcrypt.hash(password, 10);
+            const user = await User.findOne({
+                $or: [
+                    { email: username },
+                    { username: username }
+                ]
+            });
 
-      const user = await User.create({
-        ...req.body,
-        password: hashedPassword
-      });
+            if (!user) {
+                console.log('Usuário não encontrado:', username);
+                return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+            }
 
-      user.password = undefined;
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
+                console.log('Senha inválida para usuário:', username);
+                return res.status(401).json({ error: 'Usuário ou senha inválidos' });
+            }
 
-      const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-        expiresIn: '1d'
-      });
+            const token = jwt.sign(
+                { id: user._id },
+                JWT_SECRET,
+                { expiresIn: '24h' }
+            );
 
-      return res.status(201).json({ user, token });
-    } catch (error) {
-      return res.status(400).json({ error: 'Falha no registro' });
+            console.log('Login bem-sucedido para:', username);
+            console.log('Token gerado:', token);
+
+            const userWithoutPassword = {
+                _id: user._id,
+                username: user.username,
+                email: user.email
+            };
+
+            res.json({
+                token,
+                user: userWithoutPassword
+            });
+
+        } catch (error) {
+            console.error('Erro no login:', error);
+            res.status(500).json({ error: 'Erro interno do servidor' });
+        }
     }
-  }
 
-  // Login
-  async login(req, res) {
-    try {
-      const { email, password } = req.body;
-
-      const user = await User.findOne({ email }).select('+password');
-
-      if (!user) {
-        return res.status(400).json({ error: 'Usuário não encontrado' });
-      }
-
-      if (!await bcrypt.compare(password, user.password)) {
-        return res.status(400).json({ error: 'Senha inválida' });
-      }
-
-      user.password = undefined;
-
-      const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-        expiresIn: '1d'
-      });
-
-      return res.json({ user, token });
-    } catch (error) {
-      return res.status(400).json({ error: 'Falha no login' });
+    static async getProfile(req, res) {
+        try {
+            const user = await User.findById(req.userId).select('-password');
+            if (!user) {
+                return res.status(404).json({ error: 'Usuário não encontrado' });
+            }
+            res.json(user);
+        } catch (error) {
+            console.error('Erro ao buscar perfil:', error);
+            res.status(500).json({ error: 'Erro ao buscar perfil' });
+        }
     }
-  }
 }
 
-module.exports = new AuthController(); 
+module.exports = AuthController; 

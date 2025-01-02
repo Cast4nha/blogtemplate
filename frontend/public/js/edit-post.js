@@ -1,149 +1,201 @@
-// Inicialização do TinyMCE
-tinymce.init({
-    selector: '#content',
-    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-    height: 500
+document.addEventListener('DOMContentLoaded', async function() {
+    await checkAuth();
+    await setupEditor();
+    await loadPost();
+    setupImagePreview();
+    setupForm();
+    setupLogout();
 });
 
-// Variáveis globais
-let postId;
-let currentImage;
+async function setupEditor() {
+    return new Promise((resolve) => {
+        tinymce.init({
+            selector: '#content',
+            setup: function(editor) {
+                editor.on('init', function() {
+                    resolve();
+                });
+            },
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'help', 'wordcount', 'emoticons'
+            ],
+            toolbar: 'undo redo | formatselect | ' +
+                    'bold italic backcolor | alignleft aligncenter ' +
+                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                    'removeformat | image media emoticons | help',
+            menubar: true,
+            content_style: `
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 16px;
+                    line-height: 1.5;
+                    padding: 1rem;
+                }
+            `,
+            height: 500,
+            language: 'pt_BR',
+            skin: 'oxide',
+            branding: false,
+            promotion: false,
+            automatic_uploads: true,
+            images_upload_url: 'http://localhost:3000/api/upload',
+            images_upload_handler: async function (blobInfo, success, failure) {
+                try {
+                    const formData = new FormData();
+                    formData.append('image', blobInfo.blob(), blobInfo.filename());
 
-// Verificar autenticação e carregar dados do post
-document.addEventListener('DOMContentLoaded', async function() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = '/login.html';
-        return;
-    }
+                    const response = await authenticatedFetch('http://localhost:3000/api/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
 
-    // Obter ID do post da URL
-    const urlParams = new URLSearchParams(window.location.search);
-    postId = urlParams.get('id');
+                    if (!response.ok) throw new Error('Upload failed');
 
+                    const data = await response.json();
+                    success(data.url);
+                } catch (err) {
+                    failure('Erro no upload da imagem: ' + err.message);
+                }
+            }
+        });
+    });
+}
+
+async function loadPost() {
+    const postId = new URLSearchParams(window.location.search).get('id');
     if (!postId) {
-        alert('ID do post não encontrado');
         window.location.href = '/admin.html';
         return;
     }
 
-    await loadPost();
-    setupEventListeners();
-});
-
-// Carregar dados do post
-async function loadPost() {
     try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/posts/${postId}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar post');
+        const response = await authenticatedFetch(`http://localhost:3000/api/posts/${postId}`);
+        if (!response.ok) {
+            throw new Error('Erro ao carregar post');
+        }
 
         const post = await response.json();
+        console.log('Post carregado:', post);
 
-        // Preencher formulário
-        document.getElementById('title').value = post.title;
-        document.getElementById('description').value = post.description;
-        document.getElementById('tags').value = post.tags.join(', ');
-        document.getElementById('status').value = post.status;
+        document.getElementById('title').value = post.title || '';
+        document.getElementById('description').value = post.description || '';
 
-        // Atualizar contador de caracteres da descrição
-        const descriptionCount = document.getElementById('descriptionCount');
-        descriptionCount.textContent = post.description.length;
+        const editor = tinymce.get('content');
+        if (editor) {
+            console.log('Definindo conteúdo do editor:', post.content);
+            editor.setContent(post.content || '');
+        } else {
+            console.error('Editor não encontrado!');
+        }
 
-        // Mostrar imagem atual
-        currentImage = post.coverImage;
-        const currentImageDiv = document.getElementById('currentImage');
-        currentImageDiv.innerHTML = `
-            <img src="http://localhost:3000${post.coverImage}"
-                 alt="Imagem atual"
-                 class="img-fluid rounded"
-                 style="max-height: 200px;">
-        `;
-
-        // Inicializar TinyMCE com o conteúdo
-        tinymce.get('content').setContent(post.content);
+        // Preview da imagem
+        if (post.coverImage) {
+            const preview = document.getElementById('imagePreview');
+            preview.classList.remove('hidden');
+            preview.querySelector('img').src = post.coverImage.startsWith('http')
+                ? post.coverImage
+                : `http://localhost:3000${post.coverImage}`;
+        }
 
     } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao carregar dados do post');
+        console.error('Erro ao carregar post:', error);
+        alert('Erro ao carregar post: ' + error.message);
     }
 }
 
-// Configurar event listeners
-function setupEventListeners() {
-    // Preview da nova imagem
-    document.getElementById('coverImage').addEventListener('change', function(e) {
+function setupImagePreview() {
+    const input = document.getElementById('coverImage');
+    const preview = document.getElementById('imagePreview');
+    const previewImg = preview.querySelector('img');
+
+    input.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                const preview = document.getElementById('imagePreview');
-                preview.innerHTML = `
-                    <img src="${e.target.result}"
-                         class="img-fluid rounded mt-2"
-                         style="max-height: 200px;">
-                `;
+                previewImg.src = e.target.result;
+                preview.classList.remove('hidden');
             }
             reader.readAsDataURL(file);
         }
     });
-
-    // Contador de caracteres da descrição
-    document.getElementById('description').addEventListener('input', function(e) {
-        const count = e.target.value.length;
-        document.getElementById('descriptionCount').textContent = count;
-    });
-
-    // Submissão do formulário
-    document.getElementById('editPostForm').addEventListener('submit', handleSubmit);
 }
 
-// Manipular submissão do formulário
-async function handleSubmit(e) {
-    e.preventDefault();
+async function setupForm() {
+    const form = document.getElementById('postForm');
+    const saveButton = document.getElementById('saveButton');
+    const postId = new URLSearchParams(window.location.search).get('id');
 
-    try {
-        const token = localStorage.getItem('token');
-        const formData = new FormData();
+    saveButton.addEventListener('click', async function(e) {
+        e.preventDefault();
 
-        // Adicionar campos ao formData
-        formData.append('title', document.getElementById('title').value);
-        formData.append('description', document.getElementById('description').value);
-        formData.append('content', tinymce.get('content').getContent());
-        formData.append('status', document.getElementById('status').value);
+        try {
+            saveButton.disabled = true;
+            saveButton.innerHTML = `
+                <i class="fas fa-circle-notch fa-spin mr-2"></i>
+                Salvando...
+            `;
 
-        const tags = document.getElementById('tags').value;
-        if (tags) {
-            formData.append('tags', tags);
+            // Obter o conteúdo do editor
+            const content = tinymce.get('content').getContent();
+            console.log('Conteúdo do editor:', content); // Debug
+
+            // Criar FormData com os dados do formulário
+            const formData = new FormData(form);
+            formData.set('content', content); // Usar set em vez de append
+
+            // Debug dos dados sendo enviados
+            console.log('Dados sendo enviados:', {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                content: formData.get('content').substring(0, 100) + '...',
+                file: formData.get('coverImage')
+            });
+
+            const response = await authenticatedFetch(`http://localhost:3000/api/posts/${postId}`, {
+                method: 'PUT',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro ao atualizar post');
+            }
+
+            console.log('Post atualizado com sucesso:', data);
+
+            saveButton.innerHTML = `
+                <i class="fas fa-check mr-2"></i>
+                Salvo!
+            `;
+            saveButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+            saveButton.classList.add('bg-green-500');
+
+            setTimeout(() => {
+                window.location.href = '/admin.html';
+            }, 1000);
+
+        } catch (error) {
+            console.error('Erro detalhado:', error);
+
+            saveButton.disabled = false;
+            saveButton.innerHTML = `
+                <i class="fas fa-save mr-2"></i>
+                Salvar Alterações
+            `;
+
+            alert('Erro ao salvar post: ' + error.message);
         }
+    });
+}
 
-        // Adicionar nova imagem apenas se foi selecionada
-        const newImage = document.getElementById('coverImage').files[0];
-        if (newImage) {
-            formData.append('coverImage', newImage);
-        }
-
-        const response = await fetch(`http://localhost:3000/api/posts/${postId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            },
-            body: formData
-        });
-
-        if (!response.ok) throw new Error('Erro ao atualizar post');
-
-        alert('Post atualizado com sucesso!');
-        window.location.href = '/admin.html';
-
-    } catch (error) {
-        console.error('Erro:', error);
-        alert('Erro ao atualizar post');
-    }
-} 
+function setupLogout() {
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.replace('/login.html');
+    });
+}
