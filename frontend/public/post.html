@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post - Blog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="flex flex-col min-h-full bg-gray-100">
+    <!-- Navbar -->
+    <nav class="bg-gray-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="inline-flex items-center text-white hover:text-gray-300 transition">
+                        <i class="fas fa-arrow-left mr-2"></i> Voltar
+                    </a>
+                    <span class="text-gray-400">|</span>
+                    <a href="/" class="text-xl font-bold hover:text-gray-300 transition">Blog</a>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div id="adminControls" class="hidden">
+                        <a href="/admin.html" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-white bg-transparent hover:bg-gray-700 transition">
+                            <i class="fas fa-columns mr-2"></i> Painel
+                        </a>
+                    </div>
+                    <div id="userControls" class="hidden">
+                        <button id="logoutBtn" class="inline-flex items-center px-4 py-2 border border-red-500 rounded-md text-red-500 bg-transparent hover:bg-red-500 hover:text-white transition">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- Post Principal -->
+        <article class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden mb-12">
+            <div id="postContent">
+                <!-- Conteúdo do post será inserido aqui via JavaScript -->
+            </div>
+        </article>
+
+        <!-- Posts Sugeridos -->
+        <section class="max-w-3xl mx-auto mt-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Leia também</h2>
+            <div id="suggestedPosts" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Posts sugeridos serão inseridos aqui via JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col items-center space-y-6">
+                <div class="flex space-x-6">
+                    <a href="https://instagram.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-instagram text-2xl"></i>
+                    </a>
+                    <a href="https://facebook.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-facebook text-2xl"></i>
+                    </a>
+                    <a href="https://twitter.com" target="_blank" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-twitter text-2xl"></i>
+                    </a>
+                </div>
+                <div class="text-gray-400">
+                    <a href="/login.html" class="hover:text-white transition">Acesso Administrativo</a>
+                </div>
+                <div class="text-gray-500 text-sm">
+                    Desenvolvido por Felipe Castanheira
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/post.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
