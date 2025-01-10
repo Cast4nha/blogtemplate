@@ -29,29 +29,27 @@ function checkTokenResponse(response) {
 async function authenticatedFetch(url, options = {}) {
     const token = getToken();
     if (!token) {
-        throw new Error('Token não fornecido');
+        window.location.replace('/login.html');
+        throw new Error('Token não encontrado');
     }
 
-    // Garantir que options.headers existe
-    options.headers = options.headers || {};
+    // Adicionar try/catch
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
-    // Se for FormData, não definir Content-Type
-    if (!(options.body instanceof FormData)) {
-        options.headers['Content-Type'] = 'application/json';
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response;
+    } catch (error) {
+        console.error('Erro na requisição:', error);
+        throw error;
     }
-
-    // Adicionar token de autorização
-    options.headers['Authorization'] = `Bearer ${token}`;
-
-    console.log('Request Headers:', options.headers); // Debug
-    console.log('Request URL:', url); // Debug
-    console.log('Request Method:', options.method || 'GET'); // Debug
-
-    const response = await fetch(url, options);
-
-    if (!checkTokenResponse(response)) {
-        throw new Error('Token inválido');
-    }
-
-    return response;
 }

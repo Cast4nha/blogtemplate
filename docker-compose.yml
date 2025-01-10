@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build: ./backend
@@ -7,6 +5,7 @@ services:
       - "3000:3000"
     environment:
       - MONGODB_URI=mongodb://db:27017/blog
+      - JWT_SECRET=sua_chave_secreta_muito_segura_aqui
     depends_on:
       - db
 

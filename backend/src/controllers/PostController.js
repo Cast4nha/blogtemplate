@@ -31,6 +31,16 @@ module.exports = {
     async store(req, res) {
         try {
             const { title, description, content } = req.body;
+            
+            // Adicionar validações
+            if (!title || !description || !content) {
+                return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
+            }
+
+            if (description.length > 300) {
+                return res.status(400).json({ error: 'Descrição muito longa' });
+            }
+
             const coverImage = req.file ? `/uploads/${req.file.filename}` : null;
 
             const post = await Post.create({
@@ -114,6 +124,8 @@ module.exports = {
                 return res.status(404).json({ error: 'Post não encontrado' });
             }
 
+            await Post.findByIdAndDelete(req.params.id);
+
             if (post.coverImage) {
                 try {
                     const imagePath = path.join(__dirname, '../../public', post.coverImage);
@@ -123,8 +135,7 @@ module.exports = {
                 }
             }
 
-            await post.deleteOne();
-            res.json({ message: 'Post removido com sucesso' });
+            return res.status(204).send();
         } catch (error) {
             res.status(500).json({ error: 'Erro ao remover post' });
         }

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const PostController = require('../controllers/PostController');
-const auth = require('../middleware/auth');
+const auth = require('../middlewares/auth');
 const upload = require('../config/multer');
 
 // Rotas públicas
