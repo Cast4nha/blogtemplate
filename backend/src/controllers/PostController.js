@@ -1,4 +1,5 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -7,7 +8,9 @@ module.exports = {
     // Lista todos os posts
     async index(req, res) {
         try {
-            const posts = await Post.find().sort({ createdAt: -1 });
+            const posts = await Post.find()
+                .populate('author', 'username')
+                .sort({ createdAt: -1 });
             res.json(posts);
         } catch (error) {
             res.status(500).json({ error: 'Erro ao listar posts' });
@@ -17,7 +20,8 @@ module.exports = {
     // Mostra um post específico
     async show(req, res) {
         try {
-            const post = await Post.findById(req.params.id);
+            const post = await Post.findById(req.params.id)
+                .populate('author', 'username');
             if (!post) {
                 return res.status(404).json({ error: 'Post não encontrado' });
             }
@@ -51,9 +55,13 @@ module.exports = {
                 author: req.userId
             });
 
-            res.status(201).json(post);
+            // Popula os dados do autor antes de retornar
+            await post.populate('author', 'username');
+
+            return res.status(201).json(post);
         } catch (error) {
-            res.status(500).json({ error: 'Erro ao criar post' });
+            console.error('Erro ao criar post:', error);
+            return res.status(500).json({ error: 'Erro ao criar post' });
         }
     },
 

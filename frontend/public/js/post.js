@@ -18,49 +18,34 @@ async function loadPost(postId) {
         const post = await response.json();
 
         if (!post) {
-            throw new Error('Post não encontrado');
+            container.innerHTML = '<p class="text-center text-gray-500">Post não encontrado</p>';
+            return;
         }
 
-        const data = new Date(post.createdAt);
-        const dataFormatada = data.toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric'
-        });
-
         container.innerHTML = `
-            <img src="http://localhost:3000${post.coverImage}"
-                 class="w-full h-96 object-cover"
-                 alt="${post.title}"
-                 onerror="this.src='/assets/images/default-post.jpg'">
-
-            <div class="p-8">
-                <h1 class="text-3xl font-bold text-gray-900 mb-4">${post.title}</h1>
-
-                <div class="flex items-center text-gray-600 mb-6">
-                    <div class="flex items-center">
-                        <i class="fas fa-user-circle mr-2"></i>
-                        <span>${post.author ? post.author.username : 'Anônimo'}</span>
+            <article class="bg-white rounded-lg shadow-md overflow-hidden">
+                <img src="http://localhost:3000${post.coverImage}" 
+                     alt="${post.title}" 
+                     class="w-full h-64 object-cover">
+                <div class="p-6">
+                    <h1 class="text-3xl font-bold mb-4">${post.title}</h1>
+                    <div class="flex items-center text-sm text-gray-500 mb-6">
+                        <i class="fas fa-user mr-2"></i>
+                        <span>${post.author ? post.author.username : 'Autor desconhecido'}</span>
+                        <span class="mx-2">•</span>
+                        <i class="fas fa-calendar mr-2"></i>
+                        <span>${new Date(post.createdAt).toLocaleDateString('pt-BR')}</span>
                     </div>
-                    <span class="mx-3">•</span>
-                    <div class="flex items-center">
-                        <i class="far fa-calendar-alt mr-2"></i>
-                        <span>${dataFormatada}</span>
+                    <div class="prose max-w-none">
+                        ${post.content}
                     </div>
                 </div>
-
-                <div class="prose max-w-none">
-                    ${post.content}
-                </div>
-            </div>
+            </article>
         `;
-
     } catch (error) {
         console.error('Erro:', error);
         container.innerHTML = `
-            <div class="p-8 text-center">
-                <i class="fas fa-exclamation-circle text-4xl text-red-500 mb-4"></i>
-                <h2 class="text-2xl font-bold text-red-600 mb-2">Erro ao carregar post</h2>
+            <div class="text-center py-10">
                 <p class="text-gray-600">${error.message}</p>
             </div>
         `;

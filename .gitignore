@@ -1,0 +1,32 @@
+# Dependências
+node_modules/
+dist/
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Certificados
+*.pem
+*.key
+*.crt
+
+# Build
+build/
+out/

@@ -14,101 +14,72 @@ function checkAuth() {
 async function loadPosts() {
     const tableBody = document.getElementById('postsTableBody');
     const loadingState = document.getElementById('loadingState');
-    const emptyState = document.getElementById('emptyState');
 
     try {
-        // Mostra loading
-        loadingState.classList.remove('hidden');
-        tableBody.classList.add('hidden');
-        emptyState.classList.add('hidden');
-
-        const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/posts', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Erro ao carregar posts');
-        }
-
+        const response = await fetch('http://localhost:3000/api/posts');
         const posts = await response.json();
 
         if (!posts || posts.length === 0) {
-            loadingState.classList.add('hidden');
-            emptyState.classList.remove('hidden');
-            return;
-        }
-
-        tableBody.innerHTML = posts.map(post => {
-            const data = new Date(post.createdAt);
-            const dataFormatada = data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric'
-            });
-
-            return `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <img class="h-10 w-10 rounded-lg object-cover"
-                                 src="http://localhost:3000${post.coverImage}"
-                                 alt="${post.title}"
-                                 onerror="this.src='/assets/images/default-post.jpg'">
-                            <div class="ml-4">
-                                <div class="text-sm font-medium text-gray-900">${post.title}</div>
-                                <div class="text-sm text-gray-500 line-clamp-1">${post.description}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${dataFormatada}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                   ${post.status === 'publicado'
-                                     ? 'bg-green-100 text-green-800'
-                                     : 'bg-yellow-100 text-yellow-800'}">
-                            ${post.status === 'publicado' ? 'Publicado' : 'Rascunho'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${post.views || 0} visualizações
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex justify-end space-x-2">
-                            <a href="/edit-post.html?id=${post._id}"
-                               class="text-indigo-600 hover:text-indigo-900">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <button onclick="deletePost('${post._id}')"
-                                    class="text-red-600 hover:text-red-900">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-gray-500">
+                        Nenhum post encontrado
                     </td>
                 </tr>
             `;
-        }).join('');
+            return;
+        }
 
-        // Esconde loading e mostra tabela
-        loadingState.classList.add('hidden');
-        tableBody.classList.remove('hidden');
+        tableBody.innerHTML = posts.map(post => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <img class="h-10 w-10 rounded-full object-cover" 
+                             src="http://localhost:3000${post.coverImage}" 
+                             alt="${post.title}">
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                ${post.title}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                        ${post.author ? post.author.username : 'Autor desconhecido'}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">
+                        ${new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <a href="/edit-post.html?id=${post._id}" 
+                       class="text-indigo-600 hover:text-indigo-900 mr-4">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    <button onclick="deletePost('${post._id}')" 
+                            class="text-red-600 hover:text-red-900">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </td>
+            </tr>
+        `).join('');
 
     } catch (error) {
         console.error('Erro:', error);
         tableBody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-6 py-4 text-center text-red-600">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
+                <td colspan="5" class="text-center py-4 text-red-500">
                     Erro ao carregar posts: ${error.message}
                 </td>
             </tr>
         `;
-        loadingState.classList.add('hidden');
-        tableBody.classList.remove('hidden');
+    } finally {
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
     }
 }
 
