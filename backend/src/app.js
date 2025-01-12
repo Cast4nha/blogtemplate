@@ -74,6 +74,25 @@ const startServer = async () => {
     });
 };
 
+// Middleware de erro global (adicione antes do module.exports)
+app.use((err, req, res, next) => {
+    console.error('Erro global:', err);
+    res.status(500).json({
+        error: 'Erro interno do servidor',
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+// Tratamento de erros não capturados
+process.on('unhandledRejection', (err) => {
+    console.error('Erro não tratado (Promise):', err);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Erro não tratado (Exception):', err);
+    process.exit(1);
+});
+
 startServer();
 
 module.exports = app;
