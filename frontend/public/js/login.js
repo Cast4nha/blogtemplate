@@ -16,9 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
 
         try {
-            console.log('Tentando login com:', { username });
-
-            const response = await fetch('http://localhost:3000/api/auth/login', {
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             const data = await response.json();
-            console.log('Resposta do servidor:', data);
 
             if (!response.ok) {
                 throw new Error(data.error || 'Erro ao fazer login');
@@ -55,22 +52,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1000);
 
         } catch (error) {
-            console.error('Erro detalhado:', error);
-
+            console.error('Erro:', error);
             submitButton.disabled = false;
             submitButton.innerHTML = `
                 <i class="fas fa-sign-in-alt mr-2"></i>
                 Entrar
             `;
-
             errorMessage.classList.remove('hidden');
-            errorMessage.classList.add('text-red-600');
-            errorMessage.innerHTML = `
-                <div class="flex items-center justify-center">
-                    <i class="fas fa-exclamation-circle mr-2"></i>
-                    ${error.message}
-                </div>
-            `;
+            errorMessage.textContent = error.message || 'Erro ao fazer login';
         }
     });
 }); 

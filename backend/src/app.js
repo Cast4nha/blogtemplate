@@ -5,7 +5,13 @@ const path = require('path');
 const app = express();
 
 // Configurações básicas
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:3000',
+        'https://seu-dominio-railway.app'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
 // Servir arquivos estáticos
