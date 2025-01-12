@@ -6,39 +6,30 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8080:8080"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/blog
       - JWT_SECRET=sua_chave_secreta_aqui
+      - PORT=8080
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     networks:
       - app-network
+    restart: always
 
   mongodb:
-    image: mongo:latest
-    command: mongod --bind_ip_all
-    environment:
-      - MONGODB_DATABASE=blog
-      - GLIBC_TUNABLES=glibc.pthread.rseq=0
+    image: mongo:6.0
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 1G
     networks:
       - app-network
+    restart: always
+    command: mongod --bind_ip_all
+    environment:
+      - MONGODB_DATABASE=blog
 
 networks:
   app-network:

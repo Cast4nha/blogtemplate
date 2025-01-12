@@ -6,10 +6,7 @@ const app = express();
 
 // Configurações básicas
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'https://seu-dominio-railway.app'
-    ],
+    origin: '*',
     credentials: true
 }));
 app.use(express.json());
@@ -27,21 +24,34 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads
 
 // Rota catch-all para o frontend (SPA)
 app.get('*', (req, res) => {
-    // Não redirecionar requisições da API
     if (!req.url.startsWith('/api/')) {
         res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
     }
 });
 
-// Conexão com o MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://mongodb:27017/blog', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('Conectado ao MongoDB'))
-.catch(err => console.error('Erro ao conectar ao MongoDB:', err));
+// Função para tentar conectar ao MongoDB com retry
+const connectWithRetry = () => {
+    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/blog';
+    console.log('Tentando conectar ao MongoDB em:', MONGODB_URI);
+    
+    mongoose.connect(MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    })
+    .then(() => {
+        console.log('Conectado ao MongoDB com sucesso');
+    })
+    .catch(err => {
+        console.error('Erro ao conectar ao MongoDB:', err);
+        console.log('Tentando reconectar em 5 segundos...');
+        setTimeout(connectWithRetry, 5000);
+    });
+};
 
-const PORT = process.env.PORT || 3000;
+// Iniciar tentativa de conexão
+connectWithRetry();
+
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
