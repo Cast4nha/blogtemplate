@@ -1,5 +1,11 @@
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8080/api'
-    : `https://${window.location.host}/api`;
+const API_BASE_URL = (() => {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost') {
+        return 'http://localhost:8080/api';
+    }
+    return `${window.location.protocol}//${window.location.host}/api`;
+})();
 
-console.log('API_BASE_URL:', API_BASE_URL); // Para debug 
+// Para debug
+console.log('Hostname:', window.location.hostname);
+console.log('API_BASE_URL:', API_BASE_URL); 

@@ -30,30 +30,41 @@ app.get('*', (req, res) => {
 });
 
 // Função para tentar conectar ao MongoDB com retry
-const connectWithRetry = () => {
+const connectWithRetry = async () => {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://mongodb:27017/blog';
     console.log('Tentando conectar ao MongoDB em:', MONGODB_URI);
     
-    mongoose.connect(MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    })
-    .then(() => {
+    try {
+        await mongoose.connect(MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000, // Timeout após 5 segundos
+            socketTimeoutMS: 45000, // Tempo limite do socket
+            connectTimeoutMS: 10000, // Tempo limite de conexão
+        });
         console.log('Conectado ao MongoDB com sucesso');
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('Erro ao conectar ao MongoDB:', err);
         console.log('Tentando reconectar em 5 segundos...');
         setTimeout(connectWithRetry, 5000);
+    }
+};
+
+// Iniciar servidor apenas após tentar conexão com MongoDB
+const startServer = async () => {
+    await connectWithRetry();
+    
+    const PORT = process.env.PORT || 8080;
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
     });
 };
 
-// Iniciar tentativa de conexão
-connectWithRetry();
+startServer();
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+// Tratamento de erros não capturados
+process.on('unhandledRejection', (err) => {
+    console.error('Erro não tratado:', err);
 });
 
 module.exports = app;

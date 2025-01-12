@@ -6,14 +6,15 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:8080"
     environment:
       - NODE_ENV=production
       - MONGODB_URI=mongodb://mongodb:27017/blog
-      - JWT_SECRET=sua_chave_secreta_aqui
+      - JWT_SECRET=${JWT_SECRET:-defaultsecret}
       - PORT=8080
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - app-network
     restart: always
@@ -27,7 +28,12 @@ services:
     networks:
       - app-network
     restart: always
-    command: mongod --bind_ip_all
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     environment:
       - MONGODB_DATABASE=blog
 
