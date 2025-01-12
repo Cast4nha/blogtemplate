@@ -4,28 +4,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     registerForm.addEventListener('submit', async function(e) {
         e.preventDefault();
+        console.log('Iniciando registro...'); // Debug
 
         const username = document.getElementById('username').value.trim();
         const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value.trim();
 
-        // Validações básicas
-        if (!username || !email || !password) {
-            showError('Todos os campos são obrigatórios');
-            return;
-        }
-
-        // Validar email
-        if (!isValidEmail(email)) {
-            showError('Email inválido');
-            return;
-        }
-
         try {
-            const response = await fetch('http://localhost:3000/api/auth/register', {
+            console.log('Enviando requisição para:', `${API_BASE_URL}/auth/register`); // Debug
+            
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     username,
@@ -33,6 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     password
                 })
             });
+
+            console.log('Resposta recebida:', response.status); // Debug
 
             const data = await response.json();
 
@@ -57,27 +51,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1500);
 
         } catch (error) {
-            console.error('Erro:', error);
+            console.error('Erro detalhado:', error); // Debug
             showError(error.message || 'Erro ao registrar usuário');
         }
     });
 
     function showError(message) {
-        errorMessage.textContent = message;
         errorMessage.classList.remove('hidden', 'text-green-600');
         errorMessage.classList.add('text-red-600');
-        errorMessage.style.display = 'block';
+        errorMessage.textContent = message;
     }
 
     function showSuccess(message) {
-        errorMessage.textContent = message;
         errorMessage.classList.remove('hidden', 'text-red-600');
         errorMessage.classList.add('text-green-600');
-        errorMessage.style.display = 'block';
-    }
-
-    function isValidEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
+        errorMessage.textContent = message;
     }
 }); 

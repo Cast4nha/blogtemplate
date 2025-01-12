@@ -4,25 +4,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
+        console.log('Iniciando login...'); // Debug
 
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
 
-        const submitButton = loginForm.querySelector('button[type="submit"]');
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-            <i class="fas fa-circle-notch fa-spin mr-2"></i>
-            Entrando...
-        `;
-
         try {
+            console.log('Enviando requisição para:', `${API_BASE_URL}/auth/login`); // Debug
+            
             const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ username, password })
             });
+
+            console.log('Resposta recebida:', response.status); // Debug
 
             const data = await response.json();
 
@@ -30,36 +29,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Erro ao fazer login');
             }
 
-            // Salva o token e dados do usuário
+            // Login bem sucedido
             localStorage.setItem('token', data.token);
             if (data.user) {
                 localStorage.setItem('user', JSON.stringify(data.user));
             }
 
-            // Feedback de sucesso
-            errorMessage.classList.remove('hidden', 'text-red-600');
-            errorMessage.classList.add('text-green-600');
-            errorMessage.innerHTML = `
-                <div class="flex items-center justify-center">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    Login realizado com sucesso!
-                </div>
-            `;
+            showSuccess('Login realizado com sucesso! Redirecionando...');
 
-            // Redireciona
             setTimeout(() => {
                 window.location.href = '/admin.html';
-            }, 1000);
+            }, 1500);
 
         } catch (error) {
-            console.error('Erro:', error);
-            submitButton.disabled = false;
-            submitButton.innerHTML = `
-                <i class="fas fa-sign-in-alt mr-2"></i>
-                Entrar
-            `;
-            errorMessage.classList.remove('hidden');
-            errorMessage.textContent = error.message || 'Erro ao fazer login';
+            console.error('Erro detalhado:', error); // Debug
+            showError(error.message || 'Erro ao fazer login');
         }
     });
+
+    function showError(message) {
+        errorMessage.classList.remove('hidden', 'text-green-600');
+        errorMessage.classList.add('text-red-600');
+        errorMessage.textContent = message;
+    }
+
+    function showSuccess(message) {
+        errorMessage.classList.remove('hidden', 'text-red-600');
+        errorMessage.classList.add('text-green-600');
+        errorMessage.textContent = message;
+    }
 }); 
