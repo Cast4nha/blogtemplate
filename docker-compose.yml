@@ -5,17 +5,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - MONGODB_URI=${MONGODB_URI}
+        - JWT_SECRET=${JWT_SECRET}
+        - PORT=${PORT}
     ports:
-      - "${PORT:-8080}:8080"
+      - "8080:8080"
     environment:
-      - NODE_ENV=production
-      - MONGODB_URI=mongodb+srv://blogtemplate.51z0m.mongodb.net/blog?retryWrites=true&w=majority
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
-    env_file:
-      - .env
+      - NODE_ENV=production
     restart: always
 
 networks:
