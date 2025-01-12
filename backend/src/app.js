@@ -23,25 +23,6 @@ app.use(express.json());
 // Servir arquivos estáticos
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// Endpoint de debug (remover em produção)
-app.get('/api/debug/env', (req, res) => {
-    res.json({
-        mongodbUri: !!process.env.MONGODB_URI,
-        jwtSecret: !!process.env.JWT_SECRET,
-        port: process.env.PORT,
-        nodeEnv: process.env.NODE_ENV,
-        envVars: Object.keys(process.env)
-    });
-});
-
-// Configurar rotas da API
-app.use('/api/auth', require('./routes/auth.routes'));
-app.use('/api/posts', require('./routes/post.routes'));
-app.use('/api/users', require('./routes/user.routes'));
-
-// Rota para uploads
-app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
-
 // Função para tentar conectar ao MongoDB com retry
 const connectWithRetry = async () => {
     if (!process.env.MONGODB_URI) {
@@ -58,11 +39,47 @@ const connectWithRetry = async () => {
             connectTimeoutMS: 10000,
         });
         console.log('Conectado ao MongoDB com sucesso');
+
+        // Carrega as rotas apenas após a conexão com o banco
+        app.use('/api/auth', require('./routes/auth.routes'));
+        app.use('/api/posts', require('./routes/post.routes'));
+        app.use('/api/users', require('./routes/user.routes'));
+
     } catch (err) {
         console.error('Erro ao conectar ao MongoDB:', err);
         setTimeout(connectWithRetry, 5000);
     }
 };
+
+// Endpoint de debug
+app.get('/api/debug/env', (req, res) => {
+    res.json({
+        mongodbUri: !!process.env.MONGODB_URI,
+        jwtSecret: !!process.env.JWT_SECRET,
+        port: process.env.PORT,
+        nodeEnv: process.env.NODE_ENV,
+        envVars: Object.keys(process.env)
+    });
+});
+
+// Rota para uploads
+app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
+
+// Rota catch-all para o frontend (SPA)
+app.get('*', (req, res) => {
+    if (!req.url.startsWith('/api/')) {
+        res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+    }
+});
+
+// Middleware de erro global
+app.use((err, req, res, next) => {
+    console.error('Erro global:', err);
+    res.status(500).json({
+        error: 'Erro interno do servidor',
+        message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
 
 // Iniciar servidor
 const startServer = async () => {
@@ -74,14 +91,7 @@ const startServer = async () => {
     });
 };
 
-// Middleware de erro global (adicione antes do module.exports)
-app.use((err, req, res, next) => {
-    console.error('Erro global:', err);
-    res.status(500).json({
-        error: 'Erro interno do servidor',
-        message: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-});
+startServer();
 
 // Tratamento de erros não capturados
 process.on('unhandledRejection', (err) => {
@@ -90,9 +100,10 @@ process.on('unhandledRejection', (err) => {
 
 process.on('uncaughtException', (err) => {
     console.error('Erro não tratado (Exception):', err);
-    process.exit(1);
+    // Não finalizar o processo em produção
+    if (process.env.NODE_ENV !== 'production') {
+        process.exit(1);
+    }
 });
-
-startServer();
 
 module.exports = app;

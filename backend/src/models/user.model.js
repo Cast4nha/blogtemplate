@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
+// Verifica se o modelo já existe antes de criar
+const User = mongoose.models.User || mongoose.model('User', new mongoose.Schema({
     username: {
         type: String,
         required: [true, 'Username é obrigatório'],
@@ -25,14 +26,14 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-});
+}));
 
 // Middleware para log de erros
-userSchema.post('save', function(error, doc, next) {
+User.schema.post('save', function(error, doc, next) {
     if (error.name === 'MongoError' || error.name === 'ValidationError') {
         console.error('Erro ao salvar usuário:', error);
     }
     next(error);
 });
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = User; 
