@@ -9,38 +9,11 @@ services:
       - "${PORT:-8080}:8080"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongodb:27017/blog
+      - MONGODB_URI=mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@blogtemplate.51z0m.mongodb.net/blog?retryWrites=true&w=majority
       - JWT_SECRET=${JWT_SECRET:-defaultsecret}
       - PORT=8080
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - app-network
     restart: always
-
-  mongodb:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - app-network
-    restart: always
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-    environment:
-      - MONGODB_DATABASE=blog
 
 networks:
-  app-network:
+  default:
     driver: bridge
-
-volumes:
-  mongodb_data:
-    driver: local
