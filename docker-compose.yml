@@ -9,9 +9,13 @@ services:
       - "${PORT:-8080}:8080"
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb+srv://${DB_USERNAME}:${DB_PASSWORD}@blogtemplate.51z0m.mongodb.net/blog?retryWrites=true&w=majority
-      - JWT_SECRET=${JWT_SECRET:-defaultsecret}
+      - MONGODB_URI=mongodb+srv://blogtemplate.51z0m.mongodb.net/blog?retryWrites=true&w=majority
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
       - PORT=8080
+    env_file:
+      - .env
     restart: always
 
 networks:

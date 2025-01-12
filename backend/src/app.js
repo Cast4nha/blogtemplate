@@ -11,15 +11,24 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Servir arquivos estáticos
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Verificação de variáveis de ambiente
+const requiredEnvVars = ['DB_USERNAME', 'DB_PASSWORD', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
-// Configurar rotas da API
+if (missingEnvVars.length > 0) {
+    console.error('Variáveis de ambiente necessárias não definidas:', missingEnvVars);
+    console.log('Variáveis disponíveis:', Object.keys(process.env));
+    process.exit(1);
+}
+
+// Construir URI do MongoDB
+const MONGODB_URI = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@blogtemplate.51z0m.mongodb.net/blog?retryWrites=true&w=majority`;
+
+// Configurar rotas e middleware
+app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/posts', require('./routes/post.routes'));
 app.use('/api/users', require('./routes/user.routes'));
-
-// Rota para uploads
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
 // Rota catch-all para o frontend (SPA)
@@ -31,36 +40,20 @@ app.get('*', (req, res) => {
 
 // Função para tentar conectar ao MongoDB com retry
 const connectWithRetry = async () => {
-    const mongoURI = process.env.MONGODB_URI;
-    
-    if (!mongoURI) {
-        console.error('MONGODB_URI não está definido!');
-        process.exit(1);
-    }
-
-    // Log da URI sem as credenciais para debug
-    const sanitizedUri = mongoURI.replace(
-        /(mongodb\+srv:\/\/)([^:]+):([^@]+)@/,
-        '$1[USERNAME]:[PASSWORD]@'
-    );
-    console.log('Tentando conectar ao MongoDB:', sanitizedUri);
+    console.log('Tentando conectar ao MongoDB...');
+    console.log('Username definido:', !!process.env.DB_USERNAME);
+    console.log('Password definido:', !!process.env.DB_PASSWORD);
     
     try {
-        await mongoose.connect(mongoURI, {
+        await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
             connectTimeoutMS: 10000,
-            dbName: 'blog' // Especifica o nome do banco de dados
+            dbName: 'blog'
         });
         console.log('Conectado ao MongoDB Atlas com sucesso');
-        
-        // Verificar a conexão
-        const admin = new mongoose.mongo.Admin(mongoose.connection.db);
-        const result = await admin.buildInfo();
-        console.log('Versão do MongoDB:', result.version);
-        
     } catch (err) {
         console.error('Erro ao conectar ao MongoDB:', err);
         console.log('Tentando reconectar em 5 segundos...');
@@ -68,17 +61,18 @@ const connectWithRetry = async () => {
     }
 };
 
-// Iniciar servidor apenas após tentar conexão com MongoDB
+// Iniciar servidor
 const startServer = async () => {
     await connectWithRetry();
     
     const PORT = process.env.PORT || 8080;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Servidor rodando na porta ${PORT}`);
+        console.log('Ambiente:', process.env.NODE_ENV);
     });
 };
 
-// Monitoramento de eventos do Mongoose
+// Eventos de conexão do Mongoose
 mongoose.connection.on('connected', () => {
     console.log('Mongoose conectado ao MongoDB Atlas');
 });
@@ -92,10 +86,5 @@ mongoose.connection.on('disconnected', () => {
 });
 
 startServer();
-
-// Tratamento de erros não capturados
-process.on('unhandledRejection', (err) => {
-    console.error('Erro não tratado:', err);
-});
 
 module.exports = app;
